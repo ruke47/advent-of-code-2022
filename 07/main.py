@@ -1,5 +1,6 @@
 import re
 
+
 class Directory:
     def __init__(self, name, parent=None):
         self.name = name
@@ -35,10 +36,10 @@ class Directory:
             raise f"No such child dir {name}!"
 
 
-cd_pattern = re.compile("\$ cd (\S+)")
-ls_pattern = re.compile("\$ ls")
-dir_pattern = re.compile("dir (\S+)")
-file_pattern = re.compile("(\d+) (\S+)")
+cd_pattern = re.compile(r"\$ cd (\S+)")
+ls_pattern = re.compile(r"\$ ls")
+dir_pattern = re.compile(r"dir (\S+)")
+file_pattern = re.compile(r"(\d+) (\S+)")
 
 def main():
     with open("input") as file:
