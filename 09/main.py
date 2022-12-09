@@ -29,6 +29,8 @@ class Grid:
         for i in range(count):
             head_x, head_y = self.knots[0]
             self.knots[0] = (head_x + dir_offset[0], head_y + dir_offset[1])
+
+            # for every pair of knots, have the first drag the latter
             for i in range(0, len(self.knots) - 1):
                 self.catch_up_tail(i, i + 1)
 
