@@ -27,16 +27,18 @@ class Comms:
         row = floor((self.time - 1)/40) % 6
 
         if abs(col - self.x) <= 1:
-            self.screen[row][col] = '#'
+            self.screen[row][col] = '█'
         else:
-            self.screen[row][col] = '.'
+            self.screen[row][col] = ' '
 
     def clear_screen(self):
-        self.screen = [['_' for x in range(40)] for y in range(6)]
+        self.screen = [['X' for x in range(40)] for y in range(6)]
 
     def print_screen(self):
+        print('-' * 44)
         for row in self.screen:
-            print("".join(row))
+            print(f"- {''.join(row)} -")
+        print('-' * 44)
 
 
 def main():
