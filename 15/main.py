@@ -3,15 +3,6 @@ import re
 input_pattern = re.compile(r"Sensor at x=(?P<sensor_x>-?\d+), y=(?P<sensor_y>-?\d+): closest beacon is at x=(?P<beacon_x>-?\d+), y=(?P<beacon_y>-?\d+)")
 
 
-def sort_spans(span1, span2):
-    first = min(span1, span2, key=lambda span: span.begin_incl)
-    if first == span1:
-        second = span2
-    else:
-        second = span1
-    return first, second
-
-
 class Span:
     def __init__(self, begin_incl, end_incl):
         self.begin_incl = begin_incl
@@ -24,7 +15,7 @@ class Span:
         return self.__str__()
 
     def overlaps(self, other):
-        first, second = sort_spans(self, other)
+        first, second = sorted([self, other], key=lambda span: span.begin_incl)
         return second.begin_incl <= first.end_incl
 
     def combine(self, other):
