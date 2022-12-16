@@ -1,4 +1,5 @@
 import re
+from itertools import permutations
 
 input_p = re.compile(r"Valve (\w+) has flow rate=(\d+); tunnel[s]? lead[s]? to valve[s]? (.*)")
 
@@ -9,9 +10,19 @@ class Valve:
         self.flow_rate = flow_rate
         self.neighbors_names = neighbors
         self.neighbors = None
+        self.distance_to = {}
 
     def find_neighbors(self, valves):
         self.neighbors = [valves[name] for name in self.neighbors_names]
+
+    def find_distance_to_others(self, valves):
+        for valve in valves:
+            if valve == self:
+                self.distance_to[self.name] = 0
+            elif self.name in valve.distance_to:
+                self.distance_to[valve.name] = valve.distance_to[self.name]
+            else:
+                self.distance_to[valve.name] = find_distance(self, valve, valves)
 
     def __str__(self):
         return f"{self.name}({self.flow_rate}) -> {self.neighbors_names}"
@@ -20,9 +31,35 @@ class Valve:
         return f"{self.name}({self.flow_rate})"
 
 
+class Node:
+    def __init__(self, valve):
+        self.valve = valve
+        self.distance = 100
+
+    def __str__(self):
+        return f"{self.valve.name}: {self.distance}"
+
+    def __repr__(self):
+        self.__str__()
+
+
+def find_distance(start, end, all_valves):
+    nodes = {valve.name: Node(valve) for valve in all_valves}
+    nodes[start.name].distance = 0
+    unvisited = set(nodes.values())
+    while nodes[end.name] in unvisited:
+        cur_node = min(unvisited, key=lambda node: node.distance)
+        unvisited.remove(cur_node)
+        for neighbor in cur_node.valve.neighbors:
+            neighbor_node = nodes[neighbor.name]
+            neighbor_node.distance = min(neighbor_node.distance, cur_node.distance + 1)
+
+    return nodes[end.name].distance
+
+
 def read_input():
     valves = {}
-    with open("example") as file:
+    with open("input") as file:
         for line in file:
             match = input_p.fullmatch(line.strip())
             if not match:
@@ -33,56 +70,36 @@ def read_input():
             valves[name] = Valve(name, rate, neighbors)
     for valve in valves.values():
         valve.find_neighbors(valves)
+    for valve in valves.values():
+        valve.find_distance_to_others(valves.values())
 
     return valves
 
 
-def search(valve, current_path, open_nodes, fully_explored, current_score, time_left):
-    if time_left <= 0:
-        return []
-    all_paths = []
-    current_path.append(valve)
-    all_paths.append((current_score, current_path))
-
-    if all(n in current_path for n in valve.neighbors):
-        fully_explored.add(valve)
-
-    for n in valve.neighbors:
-        has_loop = False
-        for i in range(0, len(current_path) - 1):
-            if (current_path[i], current_path[i+1]) == (valve, n):
-                has_loop = True
-                break
-        if has_loop and n in fully_explored:
-            continue
-        for path in search(n, current_path.copy(), open_nodes.copy(), fully_explored.copy(), current_score, time_left - 1):
-            all_paths.append(path)
-
-    if valve.flow_rate > 0 and valve not in open_nodes:
-        time_left -= 1
-        current_score += valve.flow_rate * time_left
-        open_nodes.add(valve)
-        for n in valve.neighbors:
-            has_loop = False
-            for i in range(0, len(current_path) - 1):
-                if (current_path[i], current_path[i + 1]) == (valve, n):
-                    has_loop = True
-                    break
-            if has_loop and n in fully_explored:
-                continue
-            for path in search(n, current_path.copy(), open_nodes.copy(), fully_explored.copy(), current_score, time_left - 1):
-                all_paths.append(path)
-
-    return all_paths
+def rush_valves(start_node, unopened_valves, time):
+    valve_orders = permutations(unopened_valves)
+    max_score = 0
+    for i, order in enumerate(valve_orders):
+        if i % 1_000_000 == 0:
+            print(f"\t - {i}")
+        score = 0
+        cur_node = start_node
+        time_left = time
+        for valve in order:
+            time_cost = cur_node.distance_to[valve.name] + 1
+            time_left -= time_cost
+            score += valve.flow_rate * time_left
+            cur_node = valve
+        max_score = max(max_score, score)
+    return max_score
 
 
 def part1():
     valves = read_input()
     entry = valves['AA']
-    all_paths = search(entry, [], set(), set(), 0, 30)
-    all_paths.sort(key=lambda path: path[0])
-    all_paths.reverse()
-    print(all_paths[-1][0])
+    unopened_valves = set(valve for valve in valves.values() if valve.flow_rate > 0)
+    score = rush_valves(entry, unopened_valves, 30)
+    print(score)
 
 
 def part2():
