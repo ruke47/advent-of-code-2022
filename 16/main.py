@@ -1,8 +1,8 @@
 import re
-from collections.abc import Iterable
 
 input_p = re.compile(r"Valve (\w+) has flow rate=(\d+); tunnel[s]? lead[s]? to valve[s]? (.*)")
 tap = "🚰"
+
 
 class Valve:
     next_valve_id = 1
@@ -12,7 +12,8 @@ class Valve:
         self.flow_rate = flow_rate
         self.neighbors_names = neighbors
         self.neighbors = None
-        self.distance_to = {}
+
+        # store valve_id as an int so it's one bitwise and to see if A is a subset of B
         self.valve_id = 0
         if flow_rate > 0:
             self.valve_id = Valve.next_valve_id
@@ -21,46 +22,11 @@ class Valve:
     def find_neighbors(self, valves: dict[str, "Valve"]):
         self.neighbors = [valves[name] for name in self.neighbors_names]
 
-    def find_distance_to_others(self, valves: Iterable["Valve"]):
-        for valve in valves:
-            if valve == self:
-                self.distance_to[self.name] = 0
-            elif self.name in valve.distance_to:
-                self.distance_to[valve.name] = valve.distance_to[self.name]
-            else:
-                self.distance_to[valve.name] = find_distance(self, valve, valves)
-
     def __str__(self):
         return f"{self.name}({self.flow_rate}) -> {self.neighbors_names}"
 
     def __repr__(self):
         return f"{self.name}({self.flow_rate})"
-
-
-class Node:
-    def __init__(self, valve: Valve):
-        self.valve = valve
-        self.distance = 100
-
-    def __str__(self):
-        return f"{self.valve.name}: {self.distance}"
-
-    def __repr__(self):
-        self.__str__()
-
-
-def find_distance(start: Valve, end: Valve, all_valves: Iterable[Valve]):
-    nodes = {valve.name: Node(valve) for valve in all_valves}
-    nodes[start.name].distance = 0
-    unvisited = set(nodes.values())
-    while nodes[end.name] in unvisited:
-        cur_node = min(unvisited, key=lambda node: node.distance)
-        unvisited.remove(cur_node)
-        for neighbor in cur_node.valve.neighbors:
-            neighbor_node = nodes[neighbor.name]
-            neighbor_node.distance = min(neighbor_node.distance, cur_node.distance + 1)
-
-    return nodes[end.name].distance
 
 
 def read_input():
@@ -76,8 +42,6 @@ def read_input():
             valves[name] = Valve(name, rate, neighbors)
     for valve in valves.values():
         valve.find_neighbors(valves)
-    for valve in valves.values():
-        valve.find_distance_to_others(valves.values())
 
     return valves
 
@@ -173,10 +137,6 @@ def explore_map(start_node: Valve, valve_map: dict[str, Valve], time: int):
 
 def part1():
     valves = read_input()
-    # TODO: start with a stack of [(starting_position, enabled_faucets)]
-    # pop a reached-state off of the stack, and for each neighbor, consider whether you've been
-    # in that (location, enabled-faucets|potential-points) before, but had more time left. Only if you have not,
-    # push that next-state onto the stack.
     entry = valves['AA']
     score = explore_map(entry, valves, 30)
     print(score)
