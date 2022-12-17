@@ -153,6 +153,7 @@ def part2():
             remaining_cycle_height = cycles_remaining * loop_height
 
             leftover_cycles = (mega_cycles - drop_num - 1) % loop_length
+            # the leftover height isn't from the ground, it's from the start of the cycle!
             leftover_cycle_height = grid.all_heights[loop_begin_idx + leftover_cycles] - before_loop_height
 
             total_height = grid.height() + remaining_cycle_height + leftover_cycle_height
