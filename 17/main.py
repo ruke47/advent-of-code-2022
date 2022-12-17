@@ -1,7 +1,8 @@
 from itertools import cycle
 from collections.abc import Iterable, Iterator
-from math import floor
+from math import floor, lcm
 from time import time
+
 
 class Shape:
     def __init__(self, points: list[(int, int)], read_only=False):
@@ -86,13 +87,13 @@ class Grid:
             self.max_y = max(self.max_y, max(y for x, y in shape.points))
             self.obstructions.add(point)
 
-    def check_relative_heights(self):
+    def check_relative_heights(self, min_cycle):
         highest_point = {x: -1 for x in range(0, self.width)}
         for x, y in self.obstructions:
             highest_point[x] = max(highest_point[x], y)
         normalized_floor = min(highest_point.values())
 
-        if self.cycle_id % self.wind_length == 0:
+        if self.cycle_id % min_cycle == 0:
             normalized_heights = []
             for x in range(0, self.width):
                 normalized_heights.append(highest_point[x] - normalized_floor)
@@ -104,7 +105,7 @@ class Grid:
                 self.column_rel_heights[normalized_heights] = (self.cycle_id, self.height())
                 return None
         elif self.cycle_id % 1000 == 0:
-            # discard everything beneath the highest point in each column
+            # discard everything beneath the highest point in the lowest column
             self.obstructions = set((x, y) for x, y in self.obstructions if y >= normalized_floor)
         return None
 
@@ -139,11 +140,12 @@ def part2():
     mega_cycles = 1_000_000_000_000
     wind, wind_len = load_wind()
     grid = Grid(7, wind_len)
+    min_cycle = lcm(wind_len, 5)
     for drop_num, shape_template in enumerate(load_shapes()):
         grid.drop_shape(shape_template, wind)
-        if drop_num % 1000 != 0 and drop_num % wind_len != 0:
+        if drop_num % 1000 != 0 and drop_num % min_cycle != 0:
             continue
-        loop_state = grid.check_relative_heights()
+        loop_state = grid.check_relative_heights(min_cycle)
         if loop_state:
             loop_begin_idx, before_loop_height = loop_state
             loop_height = grid.height() - before_loop_height
@@ -165,8 +167,6 @@ def part2():
             print(f"\tLeftover Height: {leftover_cycle_height}")
             print(f"Total Height: {total_height}")
             break
-
-
 
 
 def main():
