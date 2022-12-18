@@ -21,11 +21,13 @@ def part1():
     print(exposed_faces)
 
 
-def build_solid(xb, xe, yb, ye, zb, ze, collector):
+def build_solid(xb, xe, yb, ye, zb, ze):
+    grid = set()
     for x in range(xb, xe + 1):
         for y in range(yb, ye + 1):
             for z in range(zb, ze + 1):
-                collector.add((x, y, z))
+                grid.add((x, y, z))
+    return grid
 
 
 def part2():
@@ -39,19 +41,13 @@ def part2():
     min_y = min([y for x, y, z in lava])
     min_z = min([z for x, y, z in lava])
 
-    # build a 1-wide shell around out lava: this is "outside"
-    outside = set()
-    build_solid(min_x - 1, min_x - 1, min_y - 1, max_y + 1, min_z - 1, max_z + 1, outside)
-    build_solid(max_x + 1, max_x + 1, min_y - 1, max_y + 1, min_z - 1, max_z + 1, outside)
-    build_solid(min_x - 1, max_x + 1, min_y - 1, min_y - 1, min_z - 1, max_z + 1, outside)
-    build_solid(min_x - 1, max_x + 1, max_y + 1, max_y + 1, min_z - 1, max_z + 1, outside)
-    build_solid(min_x - 1, max_x + 1, min_y - 1, max_y + 1, min_z - 1, min_z - 1, outside)
-    build_solid(min_x - 1, max_x + 1, min_y - 1, max_y + 1, max_z + 1, max_z + 1, outside)
-
     # every pixel within our bounding block that isn't lava is a void. it may be interior or exterior
-    bounding_block = set()
-    build_solid(min_x, max_x, min_y, max_y, min_z, max_z, bounding_block)
+    bounding_block = build_solid(min_x, max_x, min_y, max_y, min_z, max_z)
     voids = bounding_block.difference(lava)
+
+    # build a 1-wide shell around out lava: this is "outside"
+    one_bigger = build_solid(min_x - 1, max_x + 1, min_y - 1, max_y + 1, min_z - 1, max_z + 1)
+    outside = set((x, y, z) for x, y, z in one_bigger if (x, y, z) not in bounding_block)
 
     # if a void is touching the outside, it's outside the solid
     # keep iterating until no new pixels are being moved outside
