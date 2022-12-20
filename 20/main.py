@@ -33,37 +33,31 @@ def load():
     return original_idx, zero
 
 
-def part1():
+def mixup(multiplier=1, rounds=1):
     original_idx, zero = load()
     length = len(original_idx)
-    print_array(zero)
-    print_array_backwards(zero)
-    for i in range(length):
-        if i % 100 == 0:
-            print(f"\t- {i}/{length}")
-        cur = original_idx[i]
+    validate_integrity(zero, length)
+
+    for node in original_idx.values():
+        node.value *= multiplier
+
+    total_moves = length * rounds
+    for i in range(total_moves):
+        if i % 1000 == 0:
+            print(f"\t- {i}/{total_moves}")
+        cur = original_idx[i % length]
         new_place = cur
         val = cur.value
+        mod_val = val % (length - 1)
         if val == 0:
             continue
-        if val > 0:
-            while val > 0:
+        while mod_val > 0:
+            new_place = new_place.next
+            if new_place == cur:
                 new_place = new_place.next
-                if new_place == cur:
-                    new_place = new_place.next
-                val -= 1
-            if cur == new_place or new_place.next == cur:
-                continue
-        elif val < 0:
-            while val < 0:
-                new_place = new_place.prior
-                if new_place == cur:
-                    new_place = new_place.prior
-                val += 1
-            # move back 1 more so it's the same as if we'd come at this from the front
-            new_place = new_place.prior
-            if cur == new_place or new_place.next == cur:
-                continue
+            mod_val -= 1
+        if cur == new_place or new_place.next == cur:
+            continue
         # use temp variables to avoid gunking up state
         out_next = cur.next
         out_prior = cur.prior
@@ -83,51 +77,45 @@ def part1():
             if node.next.prior != node or node.prior.next != node:
                 raise RuntimeError("You've fucked up now. Now, you've fucked up.")
 
-    print_array(zero)
-    print_array_backwards(zero)
-
+    validate_integrity(zero, length)
     moves = (1000, 2000, 3000)
-    sum = 0
+    score = 0
     for steps in moves:
         cur = zero
         for i in range(steps):
             cur = cur.next
-        sum += cur.value
-    print(sum)
+        score += cur.value
+    print(score)
 
 
-def print_array(zero):
+def validate_integrity(zero, length):
     cur = zero
-    arr = []
     i = 0
     while True:
         i += 1
-        arr.append(cur.value)
         cur = cur.next
         if cur == zero:
             break
-        if i > 5002:
+        if i > length:
             break
-    print(i)
-    print(arr)
+    if i != length:
+        raise RuntimeError("Forwards integrity is shite.")
 
-def print_array_backwards(zero):
     cur = zero
-    arr = []
     i = 0
     while True:
         i += 1
-        arr.append(cur.value)
         cur = cur.prior
         if cur == zero:
             break
-        if i > 5002:
+        if i > length:
             break
-    print(i)
-    print(arr)
+    if i != length:
+        raise RuntimeError("Backwards integrity is shite.")
 
 def main():
-    part1()
+    mixup(1, 1)
+    mixup(811589153, 10)
 
 
 if __name__ == '__main__':
