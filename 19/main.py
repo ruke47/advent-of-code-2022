@@ -67,7 +67,7 @@ class Game:
         print("\n" * 5)
         self.blueprint.print_costs()
         for i, state in self.states.items():
-            stated.print()
+            state.print()
         day, action = self.get_input()
         if not action:
             return False
