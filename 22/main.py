@@ -30,6 +30,13 @@ facing_points = {
     up: 3
 }
 
+invert_directions = {
+    up: right,
+    right: up,
+    down: left,
+    left: down
+}
+
 class Face:
     def __init__(self, name, x_begin, y_begin):
         self.name = name
@@ -37,12 +44,40 @@ class Face:
         self.min_y = y_begin
         self.max_x = x_begin + 49
         self.max_y = y_begin + 49
-        self.neighbors = {}
-        self.transforms = {}
-        self.facing_after = {}
+        self.neighbors: dict[Direction, (Face, Direction)] = {}
 
     def contains_position(self, x, y):
         return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
+
+    def leaving_relative_offset(self, cx, cy, c_direction):
+        if c_direction == right:
+            return self.relative_y(cy)
+        elif c_direction == down:
+            return self.relative_x(cx)
+        elif c_direction == left:
+            return self.relative_y(cy)
+        elif c_direction == up:
+            return self.relative_x(cx)
+
+    def entering_offset_to_pose(self, relative_offset: int, leaving_side: Direction, entering_side: Direction) -> (Position, Direction):
+        if entering_side == leaving_side or invert_directions[leaving_side] == entering_side:
+            relative_offset = 49 - relative_offset
+        if entering_side == up:
+            y = self.min_y
+            x = self.min_x + relative_offset
+            return (x, y), down
+        elif entering_side == right:
+            x = self.max_x
+            y = self.min_y + relative_offset
+            return (x, y), left
+        elif entering_side == down:
+            y = self.max_y
+            x = self.min_x + relative_offset
+            return (x, y), up
+        elif entering_side == left:
+            x = self.min_x
+            y = self.min_y + relative_offset
+            return (x, y), right
 
     def relative_x(self, x):
         return x - self.min_x
@@ -61,70 +96,34 @@ def initialize_cube() -> dict[int, Face]:
         6: Face(6, 1, 151)
     }
 
-    faces[1].neighbors[down] = faces[3]
-    faces[1].transforms[down] = lambda cx, cy: (faces[3].max_x, faces[3].min_y + faces[1].relative_x(cx))
-    faces[1].facing_after[down] = left
+    faces[1].neighbors[down] = faces[3], right
+    faces[1].neighbors[right] = faces[4], right
+    faces[1].neighbors[up] = faces[6], down
 
-    faces[1].neighbors[right] = faces[4]
-    faces[1].transforms[right] = lambda cx, cy: (faces[4].max_x, faces[4].max_y - faces[1].relative_y(cy))
-    faces[1].facing_after[right] = left
+    faces[2].neighbors[up] = faces[6], left
+    faces[2].neighbors[left] = faces[5], left
 
-    faces[1].neighbors[up] = faces[6]
-    faces[1].transforms[up] = lambda cx, cy: (faces[6].min_x + faces[1].relative_x(cx), faces[6].max_y)
-    faces[1].facing_after[up] = up
+    faces[3].neighbors[left] = faces[5], up
+    faces[3].neighbors[right] = faces[1], down
 
-    faces[2].neighbors[up] = faces[6]
-    faces[2].transforms[up] = lambda cx, cy: (faces[6].min_x, faces[6].min_y + faces[2].relative_x(cx))
-    faces[2].facing_after[up] = right
+    faces[4].neighbors[right] = faces[1], right
+    faces[4].neighbors[down] = faces[6], right
 
-    faces[2].neighbors[left] = faces[5]
-    faces[2].transforms[left] = lambda cx, cy: (faces[5].min_x, faces[5].max_y - faces[2].relative_y(cy))
-    faces[2].facing_after[left] = right
+    faces[5].neighbors[up] = faces[3], left
+    faces[5].neighbors[left] = faces[2], left
 
-    faces[3].neighbors[left] = faces[5]
-    faces[3].transforms[left] = lambda cx, cy: (faces[5].min_x + faces[3].relative_y(cy), faces[5].min_y)
-    faces[3].facing_after[left] = down
-
-    faces[3].neighbors[right] = faces[1]
-    faces[3].transforms[right] = lambda cx, cy: (faces[1].min_x + faces[3].relative_y(cy), faces[1].max_y)
-    faces[3].facing_after[right] = up
-
-    faces[4].neighbors[right] = faces[1]
-    faces[4].transforms[right] = lambda cx, cy: (faces[1].max_x, faces[1].max_y - faces[4].relative_y(cy))
-    faces[4].facing_after[right] = left
-
-    faces[4].neighbors[down] = faces[6]
-    faces[4].transforms[down] = lambda cx, cy: (faces[6].max_x, faces[6].min_y + faces[4].relative_x(cx))
-    faces[4].facing_after[down] = left
-
-    faces[5].neighbors[up] = faces[3]
-    faces[5].transforms[up] = lambda cx, cy: (faces[3].min_x, faces[3].min_y + faces[5].relative_x(cx))
-    faces[5].facing_after[up] = right
-
-    faces[5].neighbors[left] = faces[2]
-    faces[5].transforms[left] = lambda cx, cy: (faces[2].min_x, faces[2].max_y - faces[5].relative_y(cy))
-    faces[5].facing_after[left] = right
-
-    faces[6].neighbors[left] = faces[2]
-    faces[6].transforms[left] = lambda cx, cy: (faces[2].min_x + faces[6].relative_y(cy), faces[2].min_y)
-    faces[6].facing_after[left] = down
-
-    faces[6].neighbors[down] = faces[1]
-    faces[6].transforms[down] = lambda cx, cy: (faces[1].min_x + faces[6].relative_x(cx), faces[1].min_y)
-    faces[6].facing_after[down] = down
-
-    faces[6].neighbors[right] = faces[4]
-    faces[6].transforms[right] = lambda cx, cy: (faces[4].min_x + faces[6].relative_y(cy), faces[4].max_y)
-    faces[6].facing_after[right] = up
+    faces[6].neighbors[left] = faces[2], up
+    faces[6].neighbors[down] = faces[1], up
+    faces[6].neighbors[right] = faces[4], down
 
     return faces
 
 
-def skip_face(cube: dict[int, Face], cur_x, cur_y, facing) -> (Position, Direction):
-    face = [f for f in cube.values() if f.contains_position(cur_x, cur_y)][0]
-    new_position = face.transforms[facing](cur_x, cur_y)
-    new_direction = face.facing_after[facing]
-    return new_position, new_direction
+def skip_face(cube: dict[int, Face], cur_x, cur_y, cur_direction) -> (Position, Direction):
+    leaving_face = [f for f in cube.values() if f.contains_position(cur_x, cur_y)][0]
+    entering_face, entering_direction = leaving_face.neighbors[cur_direction]
+    leaving_offset = leaving_face.leaving_relative_offset(cur_x, cur_y, cur_direction)
+    return entering_face.entering_offset_to_pose(leaving_offset, cur_direction, entering_direction)
 
 
 class Grid:
