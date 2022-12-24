@@ -100,7 +100,7 @@ class Gamestate:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def valid_next_moves(self, new_ghost_positions: set(Point)) -> Iterable["Gamestate"]:
+    def valid_next_moves(self, new_ghost_positions: set[Point]) -> Iterable["Gamestate"]:
         px, py = self.player_position
         valid_moves = []
         for dx, dy in move_options:
